@@ -97,7 +97,7 @@ class Unigram(LangModel):
 
 
 class Trigram(LangModel):
-    def __init__(self, backoff = 0.00001):
+    def __init__(self, backoff = 0.000001):
         self.trigrams = dict()
         self.tri_context = defaultdict(int)
         self.lbackoff = log(backoff, 2)
