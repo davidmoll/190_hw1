@@ -100,6 +100,8 @@ class Trigram(LangModel):
     def __init__(self, backoff = 0.000001):
         self.trigrams = dict()
         self.tri_context = defaultdict(int)
+        self.bigrams = dict()
+        self.bi_context = defaultdict(int)
         self.lbackoff = log(backoff, 2)
         self.vocabulary = set([eos])
 
@@ -124,11 +126,11 @@ class Trigram(LangModel):
         sentence = ["START_OF_SENTENCE", "START_OF_SENTENCE"] + sentence + [eos]
         for i in range(2, len(sentence)):
             self.vocabulary.add(sentence[i])
-            self.inc_tri((sentence[i-2], sentence[i-1], sentence[i]))
+            self.increment((sentence[i-2], sentence[i-1], sentence[i]))
         if len(sentence) > 1:
-            self.inc_tri((sentence[-2], sentence[-1], eos))
+            self.increment((sentence[-2], sentence[-1], eos))
 
-    def inc_tri(self, t):
+    def increment(self, t):
         if t in self.trigrams:
             self.trigrams[t] += 1.0
         else:
@@ -137,6 +139,16 @@ class Trigram(LangModel):
             self.tri_context[(t[0], t[1])] += 1.0
         else:
             self.tri_context[(t[0], t[1])] = 1.0        
+
+        b = (t[1], t[2])
+        if b in self.bigrams:
+            self.bigrams[b] += 1.0
+        else:
+            self.bigrams[b] = 1.0
+        if b[0] in self.bi_context:
+            self.bi_context[b[0]] += 1.0
+        else:
+            self.bi_context[b[0]] = 1.0      
 
 
     # optional, if there are any post-training steps (such as normalizing probabilities)
@@ -154,6 +166,19 @@ class Trigram(LangModel):
         ltot = log(tot, 2)
         for con in self.tri_context:
             self.tri_context[con] = log(self.tri_context[con], 2) - ltot
+        
+        tot = 0.0
+        for word in self.bigrams:
+            tot += self.bigrams[word]
+        ltot = log(tot, 2)
+        for word in self.bigrams:
+            self.bigrams[word] = log(self.bigrams[word], 2) - ltot
+        tot = 0.0
+        for con in self.bi_context:
+            tot += self.bi_context[con]
+        ltot = log(tot, 2)
+        for con in self.bi_context:
+            self.bi_context[con] = log(self.bi_context[con], 2) - ltot
 
 
     # required, return the log2 of the conditional prob of word, given previous words
@@ -171,10 +196,15 @@ class Trigram(LangModel):
 
         tot = len(self.vocabulary)   
         tri = (prev_prev_word, prev_word, word) 
+        bi = (prev_word, word)
+        ret = 0
         if tri in self.trigrams:
-            return (self.trigrams[tri]+1)/(self.tri_context[(tri[0], tri[1])]+tot)
+            ret += .9 * (self.trigrams[tri])/(self.tri_context[(tri[0], tri[1])]+tot)
+        if bi in self.bigrams:
+            ret += .1 * (self.bigrams[bi])/(self.bi_context[bi[0]]+tot)
         else: 
-            return self.lbackoff
+            ret += self.lbackoff
+        return ret
 
     # required, the list of words the language model suports (including EOS)
     def vocab(self):
