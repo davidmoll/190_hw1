@@ -123,14 +123,14 @@ def learn_unigram(data):
     print("sample 2: ", " ".join(str(x) for x in sampler.sample_sentence([])))
     return unigram
 
-def learn_trigram(data):
+def learn_trigram(data, l1=.9, l2=.1):
     """Learns a trigram model from data.train.
 
     It also evaluates the model on data.dev and data.test, along with generating
     some sample sentences from the model.
     """
     from lm import Trigram
-    trigram = Trigram()
+    trigram = Trigram(l1=l1, l2=l2)
     trigram.fit_corpus(data.train)
     print("vocab:", len(trigram.vocab()))
     # evaluate on train, test, and dev
@@ -166,6 +166,19 @@ def print_table(table, row_names, col_names, latex_file = None):
             print(row_format.format(row_name, *row))
 
 if __name__ == "__main__":
+    model_type = "unigram"
+    diff_l = False
+    if len(sys.argv) > 1:
+        if sys.argv[1].lower() == "trigram":
+            model_type = "trigram"
+    if len(sys.argv) == 4:
+        l1 = float(sys.argv[2])
+        l2 = float(sys.argv[3])
+        if l1 <= 1 and l1 >= 0 and l1 + l2 == 1 and l2 <= 1 and l2 >= 0:
+            diff_l = True
+        else:
+            print("Invalid lambda values! Check README for instructions") 
+            exit()
 
     dnames = ["brown", "reuters", "gutenberg"]
     datas = []
@@ -176,7 +189,13 @@ if __name__ == "__main__":
         print(dname)
         data = read_texts("data/corpora.tar.gz", dname)
         datas.append(data)
-        model = learn_trigram(data)   # CHANGE THIS TO TEST UNIGRAM INSTEAD
+        if model_type == "trigram": 
+            if diff_l:
+                model = learn_trigram(data, l1, l2)   # CHANGE THIS TO TEST UNIGRAM INSTEAD
+            else: 
+                model = learn_trigram(data)
+        else:
+            model = learn_unigram(data)
         models.append(model)
     # compute the perplexity of all pairs
     n = len(dnames)
@@ -188,6 +207,18 @@ if __name__ == "__main__":
             perp_dev[i][j] = models[i].perplexity(datas[j].dev)
             perp_test[i][j] = models[i].perplexity(datas[j].test)
             perp_train[i][j] = models[i].perplexity(datas[j].train)
+
+    #for i in xrange(n):
+    #    shared = 0
+    #    for j in xrange(i, n):
+    #        if i != j:
+    #           for trigram in models[i].bigrams:
+    #                if trigram in models[j].bigrams:
+    #                   shared += 1 
+    #            print(dnames[i])
+    #            print(dnames[j])
+    #            print(shared)
+
 
     print("-------------------------------")
     print("x train")

@@ -1,0 +1,12 @@
+***[CSE 190 D00: Programming assignment 1: Comparing Language Models ]***
+
+Run this command to see the results using my Trigram model
+ > python data.py trigram
+
+To run the Unigram model, use this command
+ > python data.py unigram
+
+
+To use lambda values besides 0.9 for Trigrams and 0.1 for Unigrams, add two more arguments (first for Trigrams, second for Unigrams). They must add up to one, and both be between 0 and 1. 
+EX: 
+ > python data.py trigram .5 .5

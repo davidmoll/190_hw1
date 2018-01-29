@@ -97,13 +97,15 @@ class Unigram(LangModel):
 
 
 class Trigram(LangModel):
-    def __init__(self, backoff = 0.000001):
+    def __init__(self, backoff = 0.000001, l1 = .9, l2 = .1):
         self.trigrams = dict()
         self.tri_context = defaultdict(int)
         self.bigrams = dict()
         self.bi_context = defaultdict(int)
         self.lbackoff = log(backoff, 2)
         self.vocabulary = set([eos])
+        self.l1 = l1
+        self.l2 = l2
 
 
     def fit_corpus(self, corpus):
@@ -199,9 +201,9 @@ class Trigram(LangModel):
         bi = (prev_word, word)
         ret = 0
         if tri in self.trigrams:
-            ret += .9 * (self.trigrams[tri])/(self.tri_context[(tri[0], tri[1])]+tot)
+            ret += self.l1 * (self.trigrams[tri])/(self.tri_context[(tri[0], tri[1])]+tot)
         if bi in self.bigrams:
-            ret += .1 * (self.bigrams[bi])/(self.bi_context[bi[0]]+tot)
+            ret += self.l2 * (self.bigrams[bi])/(self.bi_context[bi[0]]+tot)
         else: 
             ret += self.lbackoff
         return ret
